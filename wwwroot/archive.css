@@ -1,0 +1,21 @@
+/* Archived iSupport Tickets: page pieces on R2Platform's layout (R2Platform's header, menu and banners, Telerik Fluent). */
+:root { --arc-navy: #033556; --arc-muted: #5b6875; --arc-line: #d7dde3; --arc-err: #a4161a; --arc-err-bg: #fdecec; --arc-info-bg: #e8f1f8; }
+
+.intro { max-width: 70rem; }
+.muted { color: var(--arc-muted); }
+.small { font-size: .85rem; }
+.card { background: #fff; border: 1px solid var(--arc-line); border-radius: 10px; padding: 16px 18px; margin-bottom: 16px; }
+.card h2 { font-size: 1.05rem; margin: 0 0 10px; color: var(--arc-navy); }
+.msg { border-radius: 6px; padding: 10px 14px; margin-bottom: 14px; border: 1px solid transparent; }
+.msg-err { background: var(--arc-err-bg); color: var(--arc-err); border-color: #f2c0c1; }
+.pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: .78rem; font-weight: 600; white-space: nowrap;
+        vertical-align: middle; background: var(--arc-info-bg); color: var(--arc-navy); }
+.two-col { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 8px 32px; }
+.details { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 0; }
+.details dt { color: var(--arc-muted); }
+.details dd { margin: 0; }
+.text { white-space: pre-wrap; overflow-wrap: anywhere; }
+/* long descriptions in the ticket list: one line, full text on hover */
+.truncate { max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* responsive.css colours every link; keep the Download link looking like a button */
+a.action-btn, a.action-btn:link, a.action-btn:visited { text-decoration: none !important; }

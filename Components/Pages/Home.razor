@@ -1,0 +1,81 @@
+@page "/"
+@using iSupportArchiveV2.Services
+@using Telerik.DataSource
+@inject Archive Archive
+
+@* The ticket list (the current Default.aspx): every ticket for staff, the viewer's own tickets for everyone else.
+   Filtering, sorting and paging happen in SQL, so the page stays quick however many tickets there are. *@
+<PageTitle>Archived iSupport Tickets</PageTitle>
+
+<h1 class="r2-page-title">Archived iSupport tickets</h1>
+
+<p class="intro">
+    The tickets listed here are for historical reference. They are no longer serviceable. Should you need further
+    assistance in reference to an archived ticket, please create a new ticket in our
+    <a href="https://helpdesk.richland2.org/" target="_blank" rel="noopener">IT Helpdesk Ticket System</a> and note the
+    ticket number from this page.
+</p>
+
+@if (viewer is not null)
+{
+    <p class="muted small">@(viewer.IsStaff ? "You're IT staff, so every archived ticket is listed." : "Your archived tickets.")</p>
+
+    <TelerikGrid TItem="TicketRow" OnRead="@Read" Sortable="true" Pageable="true" PageSize="10"
+                 FilterMode="GridFilterMode.FilterRow">
+        <GridToolBarTemplate>
+            <span class="muted small">@total ticket@(total == 1 ? "" : "s")</span>
+            <GridCommandButton Command="CsvExport" Icon="@SvgIcon.FileCsv">CSV</GridCommandButton>
+            <GridCommandButton Command="ExcelExport" Icon="@SvgIcon.FileExcel">Excel</GridCommandButton>
+        </GridToolBarTemplate>
+        <GridExport>
+            <GridCsvExport FileName="ArchiveExport" AllPages="true" />
+            <GridExcelExport FileName="ArchiveExport" AllPages="true" />
+        </GridExport>
+        <GridColumns>
+            <GridColumn Field="@nameof(TicketRow.TicketNumber)" Title="Number" Width="120px">
+                <Template>
+                    @{ var row = (TicketRow)context; }
+                    <a href="@($"tickets/{Uri.EscapeDataString(row.TicketNumber)}")">@row.TicketNumber</a>
+                </Template>
+            </GridColumn>
+            <GridColumn Field="@nameof(TicketRow.AttachmentCount)" Title="Attachments" Width="130px" />
+            <GridColumn Field="@nameof(TicketRow.CreatedDate)" Title="Opened" Width="150px" DisplayFormat="{0:MM/dd/yyyy}" />
+            <GridColumn Field="@nameof(TicketRow.ClosedDate)" Title="Closed" Width="150px" DisplayFormat="{0:MM/dd/yyyy}" />
+            <GridColumn Field="@nameof(TicketRow.CreatedBy)" Title="Customer" Width="230px" />
+            <GridColumn Field="@nameof(TicketRow.Problem)" Title="Description">
+                <Template>
+                    @{ var row = (TicketRow)context; }
+                    <div class="truncate" title="@PlainText.FromHtml(row.Problem)">@PlainText.OneLine(row.Problem)</div>
+                </Template>
+            </GridColumn>
+            <GridColumn Field="@nameof(TicketRow.Resolution)" Title="Resolution">
+                <Template>
+                    @{ var row = (TicketRow)context; }
+                    <div class="truncate" title="@PlainText.FromHtml(row.Resolution)">@PlainText.OneLine(row.Resolution)</div>
+                </Template>
+            </GridColumn>
+            <GridColumn Field="@nameof(TicketRow.AssignedTo)" Title="Rep" Width="160px" />
+        </GridColumns>
+        <NoDataTemplate>No archived tickets.</NoDataTemplate>
+    </TelerikGrid>
+}
+else
+{
+    <p class="muted">Loading...</p>
+}
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> Auth { get; set; } = null!;
+
+    private Viewer? viewer;
+    private int total;
+
+    protected override async Task OnInitializedAsync() => viewer = await Archive.ViewerAsync((await Auth).User);
+
+    private async Task Read(GridReadEventArgs args)
+    {
+        var result = await Archive.ReadTicketsAsync(viewer!, args.Request);
+        args.Data = result.Data;
+        args.Total = total = result.Total;
+    }
+}

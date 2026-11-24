@@ -1,0 +1,30 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    @* the app's own address (e.g. /iSupportArchiveV2/ under IIS), so its files and links resolve there, not at the site root *@
+    <base href="@BaseHref" />
+    <ResourcePreloader />
+    <R2Head />
+    <link rel="stylesheet" href="@Assets["app.css"]" />
+    <link rel="stylesheet" href="@Assets["archive.css"]" />
+    <link rel="stylesheet" href="@Assets["iSupportArchiveV2.styles.css"]" />
+    <ImportMap />
+    <HeadOutlet @rendermode="InteractiveServer" />
+</head>
+
+<body>
+    <Routes @rendermode="InteractiveServer" />
+    <ReconnectModal />
+    <script src="@Assets["_framework/blazor.web.js"]"></script>
+</body>
+
+</html>
+
+@code {
+    [CascadingParameter] private HttpContext? HttpContext { get; set; }
+
+    private string BaseHref => $"{HttpContext?.Request.PathBase}/";
+}

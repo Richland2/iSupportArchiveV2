@@ -1,0 +1,119 @@
+@page "/tickets/{Number}"
+@using iSupportArchiveV2.Data
+@using TicketComment = iSupportArchiveV2.Data.Comment
+@using iSupportArchiveV2.Services
+@inject Archive Archive
+
+@* One ticket (the current Details.aspx): its details, attachments to download, and comments. Staff can open any
+   ticket; everyone else only their own (ticket numbers are short and guessable). *@
+<PageTitle>Ticket @Number · Archived iSupport Tickets</PageTitle>
+
+<p><a href="">&larr; All tickets</a></p>
+
+@if (!loaded)
+{
+    <p class="muted">Loading...</p>
+}
+else if (ticket is null)
+{
+    <div class="msg msg-err" role="status">Ticket @Number wasn't found, or it isn't one of yours.</div>
+}
+else
+{
+    <h1 class="r2-page-title">Ticket @ticket.TicketNumber <span class="pill">@(ticket.Status ?? "N/A")</span></h1>
+
+    <div class="card">
+        <div class="two-col">
+            <dl class="details">
+                <dt>Number</dt><dd>@ticket.TicketNumber</dd>
+                <dt>Customer</dt><dd>@ticket.CreatedBy</dd>
+                <dt>Category</dt><dd>@ticket.CategoryName</dd>
+                <dt>Status</dt><dd>@(ticket.Status ?? "N/A")</dd>
+            </dl>
+            <dl class="details">
+                <dt>Opened</dt><dd>@(ticket.CreatedDate?.ToString("g") ?? "N/A")</dd>
+                <dt>Closed</dt><dd>@(ticket.ClosedDate?.ToString("g") ?? "N/A")</dd>
+                <dt>Rep</dt><dd>@ticket.AssignedTo</dd>
+                <dt>Location</dt><dd>@string.Join(" / ", new[] { ticket.Campus, ticket.Room }.Where(s => !string.IsNullOrWhiteSpace(s)))</dd>
+            </dl>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="two-col">
+            <div>
+                <h2>Description</h2>
+                <div class="text">@PlainText.FromHtml(ticket.Problem)</div>
+            </div>
+            <div>
+                <h2>Resolution</h2>
+                <div class="text">@(ticket.Resolution is null ? "N/A" : PlainText.FromHtml(ticket.Resolution))</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Attachments</h2>
+        <TelerikGrid Data="@attachments" Sortable="true" Pageable="@(attachments.Count > 10)" PageSize="10">
+            <GridColumns>
+                <GridColumn Title="" Width="120px" Sortable="false">
+                    <Template>
+                        @{ var file = (AttachmentRow)context; }
+                        <a class="action-btn" download="@file.FileName"
+                           href="@($"download?number={Uri.EscapeDataString(file.TicketNumber)}&name={Uri.EscapeDataString(file.FileName)}")">Download</a>
+                    </Template>
+                </GridColumn>
+                <GridColumn Field="@nameof(AttachmentRow.FileName)" Title="File name" />
+                <GridColumn Field="@nameof(AttachmentRow.FileType)" Title="File type" Width="160px" />
+                <GridColumn Field="@nameof(AttachmentRow.CreatedDate)" Title="Uploaded" Width="140px" DisplayFormat="{0:MM/dd/yyyy}" />
+            </GridColumns>
+            <NoDataTemplate>No attachments.</NoDataTemplate>
+        </TelerikGrid>
+    </div>
+
+    <div class="card">
+        <h2>Comments</h2>
+        <TelerikGrid Data="@comments" Sortable="true" Pageable="@(comments.Count > 10)" PageSize="10">
+            <GridToolBarTemplate>
+                <GridCommandButton Command="CsvExport" Icon="@SvgIcon.FileCsv">CSV</GridCommandButton>
+            </GridToolBarTemplate>
+            <GridExport>
+                <GridCsvExport FileName="@($"Comments_{ticket.TicketNumber}")" AllPages="true" />
+            </GridExport>
+            <GridColumns>
+                <GridColumn Field="@nameof(TicketComment.CreatedDate)" Title="Date" Width="170px" DisplayFormat="{0:MM/dd/yyyy h:mm tt}" />
+                <GridColumn Field="@nameof(TicketComment.CreatedBy)" Title="By" Width="220px" />
+                <GridColumn Field="@nameof(TicketComment.Visibility)" Title="Visibility" Width="110px" />
+                <GridColumn Field="@nameof(TicketComment.Entry)" Title="Comment">
+                    <Template>
+                        @{ var comment = (TicketComment)context; }
+                        <div class="text">@PlainText.FromHtml(comment.Entry)</div>
+                    </Template>
+                </GridColumn>
+            </GridColumns>
+            <NoDataTemplate>No comments for this ticket.</NoDataTemplate>
+        </TelerikGrid>
+    </div>
+}
+
+@code {
+    [Parameter] public string Number { get; set; } = "";
+    [CascadingParameter] private Task<AuthenticationState> Auth { get; set; } = null!;
+
+    private bool loaded;
+    private Incident? ticket;
+    private List<AttachmentRow> attachments = [];
+    private List<TicketComment> comments = [];
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var viewer = await Archive.ViewerAsync((await Auth).User);
+        ticket = await Archive.GetTicketAsync(viewer, Number);
+        if (ticket is not null)
+        {
+            attachments = await Archive.GetAttachmentsAsync(ticket.TicketNumber);
+            comments = await Archive.GetCommentsAsync(ticket.TicketNumber);
+        }
+        loaded = true;
+    }
+}

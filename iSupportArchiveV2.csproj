@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- R2Platform, from the Richland2 GitHub Packages feed (see nuget.config); R2.Web brings R2.Core and R2.Data -->
+    <PackageReference Include="R2.Web" Version="0.1.1" />
+    <!-- finds the Telerik license from the developer's Telerik account; without it pages show a watermark -->
+    <PackageReference Include="Telerik.Licensing" Version="1.12.0" />
+    <!-- checks the do_it_staff AD group (staff see every ticket) -->
+    <PackageReference Include="System.DirectoryServices.AccountManagement" Version="10.0.12" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- scripts, SQL and your PC's IIS settings: not part of the published app -->
+    <None Remove="deploy\**;database\**;LocalIIS\**" />
+    <Content Remove="deploy\**;database\**;LocalIIS\**" />
+  </ItemGroup>
+
+  <!--
+    Your PC's IIS (http://localhost:88/iSupportArchiveV2, set up once with Setup-LocalIIS.ps1): each Debug build also publishes
+    the app into bin\LocalIIS, the folder IIS runs it from, with LocalIIS\web.config. A complete copy, so IIS doesn't
+    need to read anything in your Windows profile. Release builds and deploys skip this.
+  -->
+  <Target Name="PublishToLocalIIS" AfterTargets="Build"
+          Condition="'$(Configuration)' == 'Debug' and '$(R2LocalIISPublish)' != 'true' and '$(DesignTimeBuild)' != 'true'">
+    <MSBuild Projects="$(MSBuildProjectFullPath)" Targets="Publish"
+             Properties="NoBuild=true;R2LocalIISPublish=true;IsTransformWebConfigDisabled=true;Configuration=$(Configuration);PublishDir=$(MSBuildProjectDirectory)\bin\LocalIIS\" />
+    <Copy SourceFiles="LocalIIS\web.config" DestinationFolder="$(MSBuildProjectDirectory)\bin\LocalIIS\" />
+  </Target>
+
+</Project>
